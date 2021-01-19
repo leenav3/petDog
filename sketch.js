@@ -1,6 +1,6 @@
 var dog,dogImg,dogImg1;
 var database;
-var foodS,foodStock;
+var foodS,foodStock, foodObj;
 
 function preload(){
    dogImg=loadImage("Images/Dog.png");
@@ -10,47 +10,70 @@ function preload(){
 //Function to set initial environment
 function setup() {
   database=firebase.database();
-  createCanvas(500,500);
+  createCanvas(800,500);
 
-  dog=createSprite(250,300,150,150);
+  foodObj = new Food();
+
+  dog=createSprite(width-150,200,50,50);
   dog.addImage(dogImg);
-  dog.scale=0.15;
+  dog.scale=0.25;
 
-  foodStock=database.ref('Food');
+  feed=createButton("Feed the dog");
+  feed.position(width-120,95);
+  feed.mousePressed(feedDog);
+
+  addFood = createButton("Add food")
+  addFood.position(width-10,95)
+  addFood.mousePressed(addFoods)
+
+  foodStock=database.ref('foodStock');
   foodStock.on("value",readStock);
+
+  lastFed=database.ref('lastFed');
+  lastFed.on("value",readLastFed);
   textSize(20); 
 }
 
 // function to display UI
 function draw() {
   background(46,139,87);
- 
-  if(keyWentDown(UP_ARROW)){
-    writeStock(foodS);
-    dog.addImage(dogImg1);
-  }
+  foodObj.display();
 
   drawSprites();
   fill(255,255,254);
   stroke("black");
-  text("Food remaining : "+foodS,170,200);
-  textSize(13);
-  text("Note: Press UP_ARROW Key To Feed Drago Milk!",130,10,300,20);
+  text("Food remaining : "+foodObj.getFoodStock(),100,50);
+  text("Last Feeding time:" + foodObj.getLastFed(),100,100)
+
 }
 
 //Function to read values from DB
 function readStock(data){
-  foodS=data.val();
+  var food=data.val()
+  foodObj.setFoodStock(food);
 }
 
 //Function to write values in DB
-function writeStock(x){
-  if(x<=0){
-    x=0;
-  }else{
-    x=x-1;
-  } 
+function feedDog(){
+  dog.addImage(dogImg1);
+ 
+  foodObj.deductFoodStock();
   database.ref('/').update({
-    Food:x
+    foodStock:foodObj.getFoodStock(),
+    lastFed:hour()
   })
+}
+
+function addFoods(){
+  dog.addImage(dogImg);
+
+  foodObj.addFoodStock();
+  database.ref('/').update({
+    foodStock:foodObj.getFoodStock()
+   
+  })
+}
+
+function readLastFed(data){
+   foodObj.setLastFed(data.val());
 }
